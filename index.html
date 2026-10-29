@@ -190,6 +190,10 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
 .auth label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
 .auth input{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:11px 12px;font-size:16px}
 .auth input:focus{outline:none;border-color:var(--gold)}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:transparent;border-radius:8px;color:var(--muted);display:grid;place-items:center}
+.eye:hover{color:var(--ink);background:var(--line)}
 .auth .btn{width:100%;margin-top:18px;padding:12px}
 .auth .switch{display:block;margin:14px auto 0;background:none;border:0;color:var(--muted);font-size:14px;text-decoration:underline}
 .auth .msg{margin-top:14px;font-size:14px;padding:10px 12px;border-radius:8px;background:var(--gold-soft)}
@@ -311,6 +315,9 @@ function showSetup(){
   $main.hidden=true;showChrome(false);setStatus('error','Banco não configurado');$auth.hidden=false;
   $auth.innerHTML=`<div class="auth"><h1>Falta conectar o banco</h1><p>Abra o arquivo <code>config.js</code> e coloque a URL e a chave pública (anon) do seu projeto Supabase.</p></div>`;
 }
+const EYE={
+  open:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  closed:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'};
 const AUTH_ERR={'Invalid login credentials':'E-mail ou senha incorretos.','Email not confirmed':'Confirme seu e-mail pelo link que enviamos antes de entrar.','User already registered':'Este e-mail já tem conta. Use "Entrar".'};
 function showAuth(mode,msg){
   if(S.channel){sb.removeChannel(S.channel);S.channel=null}
@@ -320,13 +327,17 @@ function showAuth(mode,msg){
     forgot:['Esqueci a senha','Enviamos um link para você criar uma senha nova.','Enviar link'],reset:['Nova senha','Escolha sua nova senha.','Salvar senha']}[mode];
   $auth.innerHTML=`<form class="auth" novalidate><h1>${T[0]}</h1><p>${T[1]}</p>
     ${mode!=='reset'?'<label for="email">E-mail</label><input id="email" type="email" autocomplete="email" inputmode="email" required>':''}
-    ${mode!=='forgot'?`<label for="pass">${mode==='reset'?'Nova senha':'Senha'}</label><input id="pass" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required>`:''}
+    ${mode!=='forgot'?`<label for="pass">${mode==='reset'?'Nova senha':'Senha'}</label><div class="pw"><input id="pass" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="6" required><button type="button" class="eye" aria-label="Mostrar senha" aria-pressed="false">${EYE.open}</button></div>`:''}
     <button class="btn primary" type="submit">${T[2]}</button>
     <div class="msg" ${msg?'':'hidden'}>${esc(msg||'')}</div>
     ${mode==='login'?'<button type="button" class="switch" data-mode="signup">Ainda não tenho conta</button><button type="button" class="switch" data-mode="forgot">Esqueci a senha</button>'
       :mode!=='reset'?'<button type="button" class="switch" data-mode="login">Voltar para entrar</button>':''}
   </form>`;
   $auth.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>showAuth(b.dataset.mode));
+  const eye=$auth.querySelector('.eye');
+  if(eye)eye.onclick=()=>{const pass=$auth.querySelector('#pass'),show=pass.type==='password';
+    pass.type=show?'text':'password';eye.innerHTML=show?EYE.closed:EYE.open;
+    eye.setAttribute('aria-label',show?'Esconder senha':'Mostrar senha');eye.setAttribute('aria-pressed',show);pass.focus()};
   $auth.querySelector('form').onsubmit=async e=>{
     e.preventDefault();
     const btn=e.target.querySelector('[type=submit]'),box=e.target.querySelector('.msg');
