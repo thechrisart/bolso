@@ -1,6 +1,6 @@
 # Bolso
 
-Controle financeiro mensal: receitas, contas fixas, gastos variáveis e gastos extras, com abas por mês, visão do ano e exportação em PDF e Excel. Funciona no computador, no tablet e no celular.
+Controle financeiro mensal: ganhos, contas fixas, gastos variáveis e gastos extras, com abas por mês, visão do ano e exportação em PDF e Excel. Funciona no computador, no tablet e no celular.
 
 - Site: hospedado no GitHub Pages (pasta raiz deste repositório)
 - Banco de dados e login: Supabase

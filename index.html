@@ -232,7 +232,7 @@ const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Ago
 const SHORT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const CATS=['Alimentação','Lazer','Saúde','Casa','Transporte','Compras','Presentes','Educação','Viagem','Outros'];
 const SECS=[
-  {key:'income',  title:'Receitas',         hint:'Salários, vales e rendas extras',        kind:'income', add:'Adicionar receita'},
+  {key:'income',  title:'Ganhos',         hint:'Salários, vales e rendas extras',        kind:'income', add:'Adicionar ganho'},
   {key:'essential',title:'Contas fixas',    hint:'Essenciais: moradia, contas da casa, seguros', kind:'bill', add:'Adicionar conta'},
   {key:'variable',title:'Gastos variáveis', hint:'Não essenciais: cartão, lazer, assinaturas',   kind:'bill', add:'Adicionar gasto'},
   {key:'extras',  title:'Gastos extras',    hint:'O que saiu do planejado neste mês',      kind:'extra', add:'Adicionar gasto extra'},
@@ -406,8 +406,8 @@ function monthView(){
   if(!m){
     const prev=prevExisting(S.year,S.view);
     return `${banner}<div class="startbox"><h2>${name} ainda está vazio</h2><p>Escolha como começar este mês. Você pode editar tudo depois.</p><div class="choices">
-      ${prev?`<button class="choice rec" data-act="create" data-from="${prev.id}"><strong>Copiar de ${MONTHS[prev.m]} ${prev.y}</strong><span>Traz receitas e contas com os mesmos valores. Tudo volta para "não pago"; gastos extras não são copiados.</span></button>`:''}
-      <button class="choice${prev?'':' rec'}" data-act="create" data-from="template"><strong>Usar lista padrão</strong><span>Receitas, contas fixas e gastos variáveis mais comuns, com valores zerados.</span></button>
+      ${prev?`<button class="choice rec" data-act="create" data-from="${prev.id}"><strong>Copiar de ${MONTHS[prev.m]} ${prev.y}</strong><span>Traz ganhos e contas com os mesmos valores. Tudo volta para "não pago"; gastos extras não são copiados.</span></button>`:''}
+      <button class="choice${prev?'':' rec'}" data-act="create" data-from="template"><strong>Usar lista padrão</strong><span>Ganhos, contas fixas e gastos variáveis mais comuns, com valores zerados.</span></button>
       <button class="choice" data-act="create" data-from="blank"><strong>Começar em branco</strong><span>Sem nenhuma linha. Você adiciona o que quiser.</span></button></div></div>`;
   }
   const t=totals(m),prev=prevExisting(S.year,S.view),pt=prev&&totals(S.months[prev.id]);
@@ -420,7 +420,7 @@ function monthView(){
     <section class="card"><label class="lbl" for="notes-${id}">Anotações do mês</label><textarea id="notes-${id}" data-f="notes" placeholder="Ex.: IPVA parcelado em 3x, 13º entra em dezembro…">${esc(m.notes)}</textarea></section></div>
   <aside>
     <div class="card balance"><div class="lbl">Saldo do mês</div><div class="big num" data-t="balance">${brl.format(t.balance)}</div>
-      <div class="kv"><div><span>Receitas</span><span data-t="income">${brl.format(t.income)}</span></div><div><span>Despesas totais</span><span data-t="expenses">${brl.format(t.expenses)}</span></div><div><span>Sobra da renda</span><span data-t="rate" data-fmt="pct">${pct(t.rate)}</span></div></div></div>
+      <div class="kv"><div><span>Ganhos</span><span data-t="income">${brl.format(t.income)}</span></div><div><span>Despesas totais</span><span data-t="expenses">${brl.format(t.expenses)}</span></div><div><span>Sobra da renda</span><span data-t="rate" data-fmt="pct">${pct(t.rate)}</span></div></div></div>
     <div class="card"><div class="lbl">Para onde foi o dinheiro</div>
       <div class="stack"><span data-bar="essential" style="background:var(--c-ess)"></span><span data-bar="variable" style="background:var(--c-var)"></span><span data-bar="extras" style="background:var(--c-ext)"></span></div>
       <div class="legend"><div><i style="background:var(--c-ess)"></i>Contas fixas<b data-t="essential">${brl.format(t.essential)}</b></div><div><i style="background:var(--c-var)"></i>Gastos variáveis<b data-t="variable">${brl.format(t.variable)}</b></div><div><i style="background:var(--c-ext)"></i>Gastos extras<b data-t="extras">${brl.format(t.extras)}</b></div></div></div>
@@ -446,23 +446,23 @@ function yearView(){
   const max=Math.max(1,...rows.map(t=>t?Math.max(t.income,t.expenses):0));
   const step=niceStep(max/4),top=step*4;
   const W=720,H=250,L=58,B=26,T=10,cw=(W-L-8)/12,bw=Math.min(18,cw/2-4),y=v=>T+(H-T-B)*(1-v/top);
-  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Receitas e despesas por mês em ${S.year}">`;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ganhos e despesas por mês em ${S.year}">`;
   for(let g=0;g<=4;g++){const v=step*g;svg+=`<line class="gl" x1="${L}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}"/><text class="tx" x="${L-8}" y="${y(v)+4}" text-anchor="end">${short(v)}</text>`}
   rows.forEach((t,i)=>{const cx=L+cw*i+cw/2;
-    if(t){svg+=`<rect class="bi" x="${cx-bw-1}" y="${y(t.income)}" width="${bw}" height="${Math.max(0,y(0)-y(t.income))}" rx="3"><title>${MONTHS[i]}: receitas ${brl.format(t.income)}</title></rect><rect class="be" x="${cx+1}" y="${y(t.expenses)}" width="${bw}" height="${Math.max(0,y(0)-y(t.expenses))}" rx="3"><title>${MONTHS[i]}: despesas ${brl.format(t.expenses)}</title></rect>`}
+    if(t){svg+=`<rect class="bi" x="${cx-bw-1}" y="${y(t.income)}" width="${bw}" height="${Math.max(0,y(0)-y(t.income))}" rx="3"><title>${MONTHS[i]}: ganhos ${brl.format(t.income)}</title></rect><rect class="be" x="${cx+1}" y="${y(t.expenses)}" width="${bw}" height="${Math.max(0,y(0)-y(t.expenses))}" rx="3"><title>${MONTHS[i]}: despesas ${brl.format(t.expenses)}</title></rect>`}
     svg+=`<text class="mx" x="${cx}" y="${H-8}" text-anchor="middle">${SHORT[i]}</text>`});
   svg+='</svg>';
   const tr=rows.map((t,i)=>t?`<tr data-tab="${i}"><td>${MONTHS[i]}</td><td>${brl.format(t.income)}</td><td>${brl.format(t.essential)}</td><td>${brl.format(t.variable)}</td><td>${brl.format(t.extras)}</td><td>${brl.format(t.expenses)}</td><td class="${t.balance>=0?'pos':'neg'}">${brl.format(t.balance)}</td></tr>`
     :`<tr class="nodata" data-tab="${i}"><td>${MONTHS[i]}</td><td colspan="6" style="text-align:left;font-family:var(--body)">Sem lançamentos · clique para abrir</td></tr>`).join('');
   return `<div class="mhead"><div><h1>${S.year}</h1><p>${n?`${n} ${n===1?'mês registrado':'meses registrados'} no ano.`:'Nenhum mês registrado neste ano ainda. Abra um mês nas abas acima para começar.'}</p></div>${n?`<div class="actions">${exportBtns()}</div>`:''}</div>
   <div class="ycards">
-    <div class="card"><div class="lbl">Receitas no ano</div><div class="big num" style="font-size:24px">${brl.format(Y.income)}</div></div>
+    <div class="card"><div class="lbl">Ganhos no ano</div><div class="big num" style="font-size:24px">${brl.format(Y.income)}</div></div>
     <div class="card"><div class="lbl">Despesas no ano</div><div class="big num" style="font-size:24px">${brl.format(Y.expenses)}</div></div>
     <div class="card"><div class="lbl">Só gastos extras</div><div class="big num" style="font-size:24px;color:var(--c-ext)">${brl.format(Y.extras)}</div></div>
     <div class="card balance"><div class="lbl">Saldo acumulado</div><div class="big num ${Y.balance>=0?'pos':'neg'}" style="font-size:24px">${brl.format(Y.balance)}</div></div>
   </div>
-  <div class="card"><div class="lbl" style="display:flex;gap:16px;flex-wrap:wrap"><span>Receitas × despesas por mês</span><span><i class="dot" style="background:var(--gold)"></i>Receitas</span><span><i class="dot" style="background:var(--c-ess)"></i>Despesas</span></div><div class="chart">${svg}</div></div>
-  <div class="tablewrap"><table><thead><tr><th>Mês</th><th>Receitas</th><th>Contas fixas</th><th>Variáveis</th><th>Extras</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody>${tr}</tbody>
+  <div class="card"><div class="lbl" style="display:flex;gap:16px;flex-wrap:wrap"><span>Ganhos × despesas por mês</span><span><i class="dot" style="background:var(--gold)"></i>Ganhos</span><span><i class="dot" style="background:var(--c-ess)"></i>Despesas</span></div><div class="chart">${svg}</div></div>
+  <div class="tablewrap"><table><thead><tr><th>Mês</th><th>Ganhos</th><th>Contas fixas</th><th>Variáveis</th><th>Extras</th><th>Despesas</th><th>Saldo</th></tr></thead><tbody>${tr}</tbody>
   <tfoot><tr><td>Total ${S.year}</td><td>${brl.format(Y.income)}</td><td>${brl.format(Y.essential)}</td><td>${brl.format(Y.variable)}</td><td>${brl.format(Y.extras)}</td><td>${brl.format(Y.expenses)}</td><td class="${Y.balance>=0?'pos':'neg'}">${brl.format(Y.balance)}</td></tr></tfoot></table></div>`;
 }
 /* ---------- Salvar e exportar ---------- */
@@ -498,7 +498,7 @@ function secRows(sec,m){
     :[r.desc||'—',r.date?r.date.split('-').reverse().join('/'):'',r.cat||'',+r.value||0]);
 }
 const secHead=sec=>sec.kind==='income'?['Descrição','','','Valor']:sec.kind==='bill'?['Descrição','Vencimento','Situação','Valor']:['Descrição','Data','Categoria','Valor'];
-function summaryRows(t){return [['Receitas',t.income],['Contas fixas',t.essential],['Gastos variáveis',t.variable],['Gastos extras',t.extras],['Despesas totais',t.expenses],['Saldo do mês',t.balance],['Já pago',t.paid],['Falta pagar',t.pending],['Reserva de emergência ideal',t.reserve]]}
+function summaryRows(t){return [['Ganhos',t.income],['Contas fixas',t.essential],['Gastos variáveis',t.variable],['Gastos extras',t.extras],['Despesas totais',t.expenses],['Saldo do mês',t.balance],['Já pago',t.paid],['Falta pagar',t.pending],['Reserva de emergência ideal',t.reserve]]}
 
 function monthSheet(m,name){
   const X=window.XLSX,t=totals(m),aoa=[[`BOLSO · ${name}`],[],['RESUMO']];
@@ -511,7 +511,7 @@ function fmtMoney(ws){for(const ref in ws){if(ref[0]==='!')continue;const c=ws[r
 async function exportXlsx(){
   await loadLib('xlsx');const X=window.XLSX,wb=X.utils.book_new();
   if(S.view==='ano'){
-    const aoa=[[`BOLSO · Resumo ${S.year}`],[],['Mês','Receitas','Contas fixas','Variáveis','Extras','Despesas','Saldo']],tot=[0,0,0,0,0,0];
+    const aoa=[[`BOLSO · Resumo ${S.year}`],[],['Mês','Ganhos','Contas fixas','Variáveis','Extras','Despesas','Saldo']],tot=[0,0,0,0,0,0];
     for(let i=0;i<12;i++){const t=totals(S.months[mid(S.year,i)]);if(!t){aoa.push([MONTHS[i],'Sem lançamentos']);continue}
       const v=[t.income,t.essential,t.variable,t.extras,t.expenses,t.balance];v.forEach((x,j)=>tot[j]+=x);aoa.push([MONTHS[i],...v])}
     aoa.push(['Total '+S.year,...tot]);
@@ -536,7 +536,7 @@ async function exportPdf(){
     const body=[],tot=[0,0,0,0,0,0];
     for(let i=0;i<12;i++){const t=totals(S.months[mid(S.year,i)]);if(!t){body.push([MONTHS[i],{content:'Sem lançamentos',colSpan:6,styles:{textColor:150}}]);continue}
       const v=[t.income,t.essential,t.variable,t.extras,t.expenses,t.balance];v.forEach((x,j)=>tot[j]+=x);body.push([MONTHS[i],...v.map(money)])}
-    doc.autoTable({...base,startY:116,head:[['Mês','Receitas','Contas fixas','Variáveis','Extras','Despesas','Saldo']],body,foot:[['Total',...tot.map(money)]],columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}});
+    doc.autoTable({...base,startY:116,head:[['Mês','Ganhos','Contas fixas','Variáveis','Extras','Despesas','Saldo']],body,foot:[['Total',...tot.map(money)]],columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}});
     return saveFile(`Bolso-${S.year}.pdf`,doc.output('arraybuffer'));
   }
   const id=mid(S.year,S.view),m=S.months[id],t=totals(m),right={3:{halign:'right'}};
