@@ -95,8 +95,8 @@ main{padding-block:24px 64px}
 .row input:hover,.row select:hover{border-color:var(--line)}
 .row input:focus,.row select:focus{border-color:var(--gold);background:var(--paper);outline:none}
 .money{position:relative}
-.money::before{content:"R$";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}
-.money input{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-left:30px}
+.money::before{content:"$";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}
+.money input{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-left:22px}
 .row input.due{text-align:center;font-family:var(--mono)}
 .chk{appearance:none;width:22px!important;height:22px;border:2px solid var(--line)!important;border-radius:6px!important;padding:0!important;display:grid;place-items:center;cursor:pointer;background:var(--surface)!important}
 .chk:checked{background:var(--pos)!important;border-color:var(--pos)!important}
@@ -242,13 +242,14 @@ const TEMPLATE={
   essential:['Moradia (aluguel/financiamento)','Condomínio','Mercado','Água','Luz','Gás','IPTU','Plano de saúde','Seguro de vida','Investimentos (obrigatório!)'],
   variable:['Cartão de crédito','Combustível','Farmácia','Pets','Imprevistos','Transporte (ônibus/Uber)','Manutenção do carro','Internet','Streaming (Netflix, Prime, Disney+)','Lazer (cinema, restaurantes)'],
 };
-const brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
-const dec=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const brl=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+const dec=new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const pct=v=>(isFinite(v)?Math.round(v*100):0)+'%';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rid=()=>Math.random().toString(36).slice(2,10);
 const mid=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
-function parseBR(s){s=String(s).replace(/[R$\s]/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
+/* Formato americano: 1,234.56. Uma vírgula sozinha com 1-2 casas no fim (12,50) também vale como centavos. */
+function parseMoney(s){s=String(s).replace(/[US$\s]/g,'');if(!s)return 0;if(!s.includes('.')&&/^[^,]*,\d{1,2}$/.test(s))s=s.replace(',','.');else s=s.replace(/,/g,'');const n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
 const sum=a=>(a||[]).reduce((t,r)=>t+(+r.value||0),0);
 
 const now=new Date();
@@ -382,7 +383,7 @@ function renderHeader(){
   const tabs=document.getElementById('tabs');tabs.innerHTML=h;
   tabs.querySelector('[aria-current="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'});
 }
-function moneyInput(id,val,label){return `<div class="money"><input id="${id}" class="val" inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="${esc(label)}" value="${val?dec.format(val):''}" data-f="value"></div>`}
+function moneyInput(id,val,label){return `<div class="money"><input id="${id}" class="val" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="${esc(label)}" value="${val?dec.format(val):''}" data-f="value"></div>`}
 function rowHtml(sec,r){
   const p=`${sec.key}-${r.id}`,del=`<button class="del" data-act="del" aria-label="Remover ${esc(r.desc||'linha')}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>`;
   const desc=`<input id="${p}-desc" class="desc" data-f="desc" value="${esc(r.desc)}" placeholder="Descrição" aria-label="Descrição">`;
@@ -506,7 +507,7 @@ function monthSheet(m,name){
   if(m.notes)aoa.push([],['ANOTAÇÕES'],[m.notes]);
   const ws=X.utils.aoa_to_sheet(aoa);fmtMoney(ws);ws['!cols']=[{wch:40},{wch:14},{wch:16},{wch:18}];return ws;
 }
-function fmtMoney(ws){for(const ref in ws){if(ref[0]==='!')continue;const c=ws[ref];if(c.t==='n')c.z='"R$" #,##0.00;-"R$" #,##0.00'}}
+function fmtMoney(ws){for(const ref in ws){if(ref[0]==='!')continue;const c=ws[ref];if(c.t==='n')c.z='"$"#,##0.00;-"$"#,##0.00'}}
 async function exportXlsx(){
   await loadLib('xlsx');const X=window.XLSX,wb=X.utils.book_new();
   if(S.view==='ano'){
@@ -553,7 +554,7 @@ async function busy(btn,label,fn){const old=btn.innerHTML;btn.disabled=true;btn.
   try{await fn()}catch(e){toast(e.message||'Algo deu errado. Tente de novo.')}finally{if(btn.isConnected){btn.disabled=false;btn.innerHTML=old}}}
 
 function niceStep(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const f=v/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
-function short(v){return v>=1000?'R$ '+(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil':'R$ '+v}
+function short(v){return v>=1000?'$'+(v/1000).toLocaleString('en-US',{maximumFractionDigits:1})+'k':'$'+v}
 
 /* ---------- Ações ---------- */
 function setView(v){S.view=v;S.confirm=false;try{localStorage.setItem('bolso-view',JSON.stringify({year:S.year,view:v}))}catch{}render();window.scrollTo({top:0})}
@@ -594,14 +595,14 @@ $main.addEventListener('input',e=>{
   const id=mid(S.year,S.view),m=S.months[id];if(!m)return;
   if(f==='notes'){m.notes=el.value;touch(id);return}
   const {r,row}=findRow(el);if(!r)return;
-  if(f==='value')r.value=parseBR(el.value);
+  if(f==='value')r.value=parseMoney(el.value);
   else if(f==='paid'){r.paid=el.checked;row.classList.toggle('paid',el.checked)}
   else if(f==='due'){el.value=el.value.replace(/\D/g,'');r.due=el.value}
   else r[f]=el.value;
   touch(id);updateTotals();
 });
 $main.addEventListener('change',e=>{if(e.target.dataset.f==='cat'){const {r}=findRow(e.target);if(r){r.cat=e.target.value;touch(mid(S.year,S.view))}}});
-$main.addEventListener('focusin',e=>{const el=e.target;if(el.dataset.f==='value'){const {r}=findRow(el);el.value=r&&r.value?String(r.value).replace('.',','):'';el.select()}});
+$main.addEventListener('focusin',e=>{const el=e.target;if(el.dataset.f==='value'){const {r}=findRow(el);el.value=r&&r.value?String(r.value):'';el.select()}});
 $main.addEventListener('focusout',e=>{const el=e.target;
   if(el.dataset.f==='value'){const {r}=findRow(el);if(r)el.value=r.value?dec.format(r.value):''}
   setTimeout(()=>{if(S.pendingRender&&!($main.contains(document.activeElement)&&document.activeElement.matches('input,select,textarea'))){S.pendingRender=false;render()}},0)});
