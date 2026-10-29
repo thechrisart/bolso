@@ -242,14 +242,15 @@ const TEMPLATE={
   essential:['Moradia (aluguel/financiamento)','Condomínio','Mercado','Água','Luz','Gás','IPTU','Plano de saúde','Seguro de vida','Investimentos (obrigatório!)'],
   variable:['Cartão de crédito','Combustível','Farmácia','Pets','Imprevistos','Transporte (ônibus/Uber)','Manutenção do carro','Internet','Streaming (Netflix, Prime, Disney+)','Lazer (cinema, restaurantes)'],
 };
-const brl=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
-const dec=new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+/* Dólar com ponto nos milhares e vírgula nos centavos: $1.000,00 */
+const dec=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const brl={format:v=>(v<0?'-':'')+'$'+dec.format(Math.abs(v))};
 const pct=v=>(isFinite(v)?Math.round(v*100):0)+'%';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rid=()=>Math.random().toString(36).slice(2,10);
 const mid=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
-/* Formato americano: 1,234.56. Uma vírgula sozinha com 1-2 casas no fim (12,50) também vale como centavos. */
-function parseMoney(s){s=String(s).replace(/[US$\s]/g,'');if(!s)return 0;if(!s.includes('.')&&/^[^,]*,\d{1,2}$/.test(s))s=s.replace(',','.');else s=s.replace(/,/g,'');const n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
+/* Aceita 1.000,50 · 1000,50 · 1.000 (mil) · 12.5 (doze e meio) */
+function parseMoney(s){s=String(s).replace(/[US$\s]/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');const n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
 const sum=a=>(a||[]).reduce((t,r)=>t+(+r.value||0),0);
 
 const now=new Date();
@@ -383,7 +384,7 @@ function renderHeader(){
   const tabs=document.getElementById('tabs');tabs.innerHTML=h;
   tabs.querySelector('[aria-current="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'});
 }
-function moneyInput(id,val,label){return `<div class="money"><input id="${id}" class="val" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="${esc(label)}" value="${val?dec.format(val):''}" data-f="value"></div>`}
+function moneyInput(id,val,label){return `<div class="money"><input id="${id}" class="val" inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="${esc(label)}" value="${val?dec.format(val):''}" data-f="value"></div>`}
 function rowHtml(sec,r){
   const p=`${sec.key}-${r.id}`,del=`<button class="del" data-act="del" aria-label="Remover ${esc(r.desc||'linha')}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>`;
   const desc=`<input id="${p}-desc" class="desc" data-f="desc" value="${esc(r.desc)}" placeholder="Descrição" aria-label="Descrição">`;
@@ -554,7 +555,7 @@ async function busy(btn,label,fn){const old=btn.innerHTML;btn.disabled=true;btn.
   try{await fn()}catch(e){toast(e.message||'Algo deu errado. Tente de novo.')}finally{if(btn.isConnected){btn.disabled=false;btn.innerHTML=old}}}
 
 function niceStep(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const f=v/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
-function short(v){return v>=1000?'$'+(v/1000).toLocaleString('en-US',{maximumFractionDigits:1})+'k':'$'+v}
+function short(v){return v>=1000?'$'+(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil':'$'+v}
 
 /* ---------- Ações ---------- */
 function setView(v){S.view=v;S.confirm=false;try{localStorage.setItem('bolso-view',JSON.stringify({year:S.year,view:v}))}catch{}render();window.scrollTo({top:0})}
@@ -602,7 +603,7 @@ $main.addEventListener('input',e=>{
   touch(id);updateTotals();
 });
 $main.addEventListener('change',e=>{if(e.target.dataset.f==='cat'){const {r}=findRow(e.target);if(r){r.cat=e.target.value;touch(mid(S.year,S.view))}}});
-$main.addEventListener('focusin',e=>{const el=e.target;if(el.dataset.f==='value'){const {r}=findRow(el);el.value=r&&r.value?String(r.value):'';el.select()}});
+$main.addEventListener('focusin',e=>{const el=e.target;if(el.dataset.f==='value'){const {r}=findRow(el);el.value=r&&r.value?String(r.value).replace('.',','):'';el.select()}});
 $main.addEventListener('focusout',e=>{const el=e.target;
   if(el.dataset.f==='value'){const {r}=findRow(el);if(r)el.value=r.value?dec.format(r.value):''}
   setTimeout(()=>{if(S.pendingRender&&!($main.contains(document.activeElement)&&document.activeElement.matches('input,select,textarea'))){S.pendingRender=false;render()}},0)});
