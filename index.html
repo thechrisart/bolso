@@ -182,8 +182,11 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
 .btn:disabled{opacity:.6;cursor:wait}
 .btn.ok{background:var(--pos);border-color:var(--pos);color:#fff}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;background:var(--band);color:var(--on-band);padding:10px 16px;border-radius:10px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
-.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.who button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
+.who{order:5;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);min-width:0}
+.who span{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1.5px solid var(--neg);background:var(--surface);color:var(--neg);border-radius:10px;font-size:15px;font-weight:600;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.logout:hover,.logout:active{background:var(--neg);color:#fff}
+.logout:disabled{opacity:.6;cursor:wait}
 .auth{max-width:420px;margin:8vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px}
 .auth h1{font-family:var(--display);font-weight:800;font-size:28px;margin:0 0 6px;letter-spacing:-.02em}
 .auth p{color:var(--muted);margin:0 0 20px;font-size:14px}
@@ -201,8 +204,14 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
 .auth code{font-family:var(--mono);font-size:13px;background:var(--paper);padding:2px 5px;border-radius:4px}
 @media (max-width:600px){
   .brand{font-size:22px}
+  /* Celular: marca + Sair na 1ª linha, ano + status na 2ª */
+  .top{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand who" "year status";gap:10px 12px}
+  .brand{grid-area:brand}
+  .who{grid-area:who;justify-self:end}
   .who span{display:none}
-  .status{order:3;width:100%}
+  .year{grid-area:year;margin-left:0;justify-self:start}
+  .year button{width:44px;height:44px}
+  .status{grid-area:status;justify-self:end;text-align:right}
   .mhead{align-items:stretch}
   .actions{width:100%}
   .actions .btn{flex:1 1 auto;text-align:center}
@@ -216,7 +225,7 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
     <div class="top">
       <div class="brand"><span class="mark">B</span><span>BOL<b>SO</b></span></div>
       <div class="status" id="status" data-s="loading"><i></i><span>Conectando ao banco…</span></div>
-      <div class="who" id="who" hidden><span id="whoEmail"></span><button id="logout">Sair</button></div>
+      <div class="who" id="who" hidden><span id="whoEmail"></span><button id="logout" class="logout" type="button" aria-label="Sair da conta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sair</button></div>
       <div class="year" id="yearNav">
         <button id="yprev" aria-label="Ano anterior">‹</button>
         <span id="ylabel"></span>
@@ -288,7 +297,7 @@ async function initStore(){
   sb.auth.onAuthStateChange((ev,session)=>{
     setTimeout(()=>{
       if(ev==='PASSWORD_RECOVERY')return showAuth('reset');
-      if(ev==='SIGNED_OUT')return showAuth('login');
+      if(ev==='SIGNED_OUT'){if($auth.hidden)showAuth('login');return}
       if((ev==='INITIAL_SESSION'||ev==='SIGNED_IN')&&session){if(S.user?.id!==session.user.id)startSession(session.user);return}
       if(ev==='INITIAL_SESSION')showAuth('login');
     },0);
@@ -358,7 +367,13 @@ function showAuth(mode,msg){
   };
   $auth.querySelector('input')?.focus();
 }
-document.getElementById('logout').onclick=async()=>{await saveNow();await sb.auth.signOut()};
+/* Sair: salva o que estiver pendente (no máximo 4 s) e encerra a sessão mesmo sem internet */
+document.getElementById('logout').onclick=async e=>{
+  const b=e.currentTarget;b.disabled=true;
+  try{await Promise.race([saveNow(),new Promise(r=>setTimeout(r,4000))])}catch{}
+  try{const {error}=await sb.auth.signOut();if(error)await sb.auth.signOut({scope:'local'})}catch{try{await sb.auth.signOut({scope:'local'})}catch{}}
+  b.disabled=false;showAuth('login','Você saiu da sua conta.');
+};
 function touch(id){
   const m=S.months[id];if(m)m.updatedAt=new Date().toISOString();
   S.dirty[id]=true;setStatus('saving');
