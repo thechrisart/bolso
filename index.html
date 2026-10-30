@@ -135,7 +135,6 @@ aside{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px
 .balance{background:var(--band);color:var(--on-band);border:0}
 .balance .lbl{color:var(--on-band);opacity:.65}
 .balance .pos{color:#6BE09A} .balance .neg{color:#FF8A7F}
-.fin .kv .sum{border-top:1px solid rgba(255,255,255,.18);padding-top:10px;margin-top:2px;font-weight:600}
 .kv{display:grid;gap:8px;margin-top:12px;font-size:14px}
 .kv div{display:flex;justify-content:space-between;gap:10px}
 .kv span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -460,8 +459,6 @@ function monthView(){
     :`<div class="actions"><button class="btn primary" data-act="save">${ICON.save}Salvar mês</button>${exportBtns()}<button class="btn danger" data-act="clear-ask">Apagar mês</button></div>`;
   return `${banner}<div class="mhead"><div><h1>${name}</h1><p data-cmp>${cmp}</p></div>${confirm}</div>
   <div class="grid"><div class="col">${SECS.map(s=>secHtml(s,m,t)).join('')}
-    <section class="card balance fin"><div class="lbl">Saldo financeiro</div><div class="big num" data-t="balance">${brl.format(t.balance)}</div>
-      <div class="kv"><div><span>Ganhos</span><span data-t="income">${brl.format(t.income)}</span></div><div><span>Contas fixas</span><span data-t="essential">${brl.format(t.essential)}</span></div><div><span>Gastos variáveis</span><span data-t="variable">${brl.format(t.variable)}</span></div><div><span>Gastos extras</span><span data-t="extras">${brl.format(t.extras)}</span></div><div><span>Despesas totais</span><span data-t="expenses">${brl.format(t.expenses)}</span></div><div class="sum"><span>Acumulado em ${S.year} até ${MONTHS[S.view].toLowerCase()}</span><span data-t="ytd" data-sign></span></div></div></section>
     <section class="card"><label class="lbl" for="notes-${id}">Anotações do mês</label><textarea id="notes-${id}" data-f="notes" placeholder="Ex.: IPVA parcelado em 3x, 13º entra em dezembro…">${esc(m.notes)}</textarea></section></div>
   <aside>
     <div class="card balance"><div class="lbl">Saldo do mês</div><div class="big num" data-t="balance">${brl.format(t.balance)}</div>
@@ -478,10 +475,8 @@ function monthView(){
 }
 function updateTotals(){
   const id=mid(S.year,S.view),t=totals(S.months[id]);if(!t)return;
-  t.ytd=0;for(let i=0;i<=S.view;i++){const x=totals(S.months[mid(S.year,i)]);if(x)t.ytd+=x.balance}
   $main.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t;el.textContent=el.dataset.fmt==='pct'?pct(t[k]):brl.format(t[k])});
-  $main.querySelectorAll('[data-t="balance"]').forEach(b=>b.className='big num '+(t.balance>=0?'pos':'neg'));
-  $main.querySelectorAll('[data-sign]').forEach(el=>el.className=t[el.dataset.t]>=0?'pos':'neg');
+  const b=$main.querySelector('[data-t="balance"]');if(b)b.className='big num '+(t.balance>=0?'pos':'neg');
   const base=Math.max(t.income,t.expenses)||1;
   for(const k of ['essential','variable','extras']){const el=$main.querySelector(`[data-bar="${k}"]`);if(el)el.style.width=(t[k]/base*100)+'%'}
   const ps=$main.querySelector('[data-bar="paidShare"]');if(ps)ps.style.width=(t.paidShare*100)+'%';
