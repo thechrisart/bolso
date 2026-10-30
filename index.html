@@ -98,6 +98,8 @@ main{padding-block:24px 64px}
 .money::before{content:"$";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}
 .money input{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-left:22px}
 .row input.due{text-align:center;font-family:var(--mono)}
+.duebox{display:flex;align-items:center;gap:6px;min-width:0}
+.duelbl{display:none}
 .chk{appearance:none;width:22px!important;height:22px;border:2px solid var(--line)!important;border-radius:6px!important;padding:0!important;display:grid;place-items:center;cursor:pointer;background:var(--surface)!important}
 .chk:checked{background:var(--pos)!important;border-color:var(--pos)!important}
 .chk:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
@@ -110,8 +112,11 @@ main{padding-block:24px 64px}
 @media (max-width:600px){
   .cols{display:none}
   .g-income{grid-template-columns:minmax(0,1fr) 120px 30px}
-  .g-bill{grid-template-columns:26px minmax(0,1fr) 120px 30px}
-  .g-bill .due{display:none}
+  /* Conta no celular em 2 linhas: [✓ descrição ×] e [Vence dia __ · valor] */
+  .row.g-bill{grid-template-columns:26px minmax(0,1fr) 130px 30px;grid-template-areas:"chk desc desc del" ". due val .";row-gap:4px;padding-block:8px}
+  .g-bill .chk{grid-area:chk} .g-bill .desc{grid-area:desc} .g-bill .duebox{grid-area:due} .g-bill .money{grid-area:val} .g-bill .del{grid-area:del}
+  .duelbl{display:inline;font-size:13px;color:var(--muted);white-space:nowrap}
+  .duebox input.due{width:52px;flex:none;border-color:var(--line);font-size:15px}
   .g-extra{grid-template-columns:minmax(0,1fr) 120px 30px;row-gap:2px}
   .g-extra .xdate{grid-column:1;grid-row:2} .g-extra .xcat{grid-column:2/4;grid-row:2}
   .row{padding:6px 10px}
@@ -415,7 +420,7 @@ function rowHtml(sec,r){
   const p=`${sec.key}-${r.id}`,del=`<button class="del" data-act="del" aria-label="Remover ${esc(r.desc||'linha')}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>`;
   const desc=`<input id="${p}-desc" class="desc" data-f="desc" value="${esc(r.desc)}" placeholder="Descrição" aria-label="Descrição">`;
   if(sec.kind==='income')return `<div class="row g-income" data-sec="${sec.key}" data-row="${r.id}">${desc}${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
-  if(sec.kind==='bill')return `<div class="row g-bill${r.paid?' paid':''}" data-sec="${sec.key}" data-row="${r.id}"><input type="checkbox" class="chk" id="${p}-paid" data-f="paid" ${r.paid?'checked':''} aria-label="Pago">${desc}<input id="${p}-due" class="due" data-f="due" inputmode="numeric" maxlength="2" placeholder="—" value="${r.due||''}" aria-label="Dia do vencimento">${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
+  if(sec.kind==='bill')return `<div class="row g-bill${r.paid?' paid':''}" data-sec="${sec.key}" data-row="${r.id}"><input type="checkbox" class="chk" id="${p}-paid" data-f="paid" ${r.paid?'checked':''} aria-label="Pago">${desc}<label class="duebox" for="${p}-due"><span class="duelbl">Vence dia</span><input id="${p}-due" class="due" data-f="due" inputmode="numeric" maxlength="2" placeholder="—" value="${r.due||''}" aria-label="Dia do vencimento"></label>${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
   const cats=CATS.map(c=>`<option${c===r.cat?' selected':''}>${c}</option>`).join('');
   return `<div class="row g-extra" data-sec="${sec.key}" data-row="${r.id}"><input type="date" id="${p}-date" class="xdate" data-f="date" value="${esc(r.date||'')}" aria-label="Data">${desc}<select id="${p}-cat" class="xcat" data-f="cat" aria-label="Categoria">${cats}</select>${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
 }
