@@ -210,6 +210,12 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
 .auth .msg{margin-top:14px;font-size:14px;padding:10px 12px;border-radius:8px;background:var(--gold-soft)}
 .auth .msg.err{background:transparent;border:1px solid var(--neg);color:var(--neg)}
 .auth code{font-family:var(--mono);font-size:13px;background:var(--paper);padding:2px 5px;border-radius:4px}
+.auth a.switch{text-align:center}
+.acct{padding-block:0 40px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.acct a,.acct .linkbtn{color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0;text-decoration:underline;font-size:13px}
+.acct .confirm{flex-basis:100%;background:var(--surface);border:1.5px solid var(--neg);border-radius:12px;padding:16px;color:var(--ink);display:grid;gap:12px}
+.acct .confirm p{margin:0;font-size:14px}
 @media (max-width:600px){
   .brand{font-size:22px}
   /* Celular: marca + Sair na 1ª linha, ano + status na 2ª */
@@ -245,6 +251,7 @@ tfoot td{font-weight:600;background:var(--gold-soft);border-bottom:0}
 </header>
 <main class="wrap" id="main"><div class="loading">Carregando seus lançamentos…</div></main>
 <section class="wrap" id="authView" hidden></section>
+<footer class="wrap acct" id="acct" hidden></footer>
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script>
@@ -299,7 +306,27 @@ S.store='db';S.user=null;S.channel=null;
 const $auth=document.getElementById('authView');
 function setStatus(s,msg){const el=document.getElementById('status');el.dataset.s=s;
   el.querySelector('span').textContent=msg||({saved:'Salvo no banco',saving:'Salvando…',error:'Erro ao salvar',loading:'Conectando…'})[s]}
-function showChrome(on){for(const id of ['tabs','yearNav','who'])document.getElementById(id).hidden=!on}
+function showChrome(on){for(const id of ['tabs','yearNav','who','acct'])document.getElementById(id).hidden=!on;if(on)renderAcct()}
+/* Endereço público do site (no app do iPhone/Mac a página roda em bolso://, então usamos o do config.js) */
+const SITE=location.protocol.startsWith('http')?location.origin+location.pathname.replace(/[^/]*$/,''):(CFG.siteUrl||'');
+const PRIVACY=SITE+'privacidade.html';
+function renderAcct(confirming){
+  const el=document.getElementById('acct');
+  el.innerHTML=`<span>${esc(S.user?.email||'')}</span><a href="${PRIVACY}" target="_blank" rel="noopener">Política de privacidade</a>
+    <button type="button" class="linkbtn" data-acct="ask">Excluir minha conta</button>
+    ${confirming?`<div class="confirm" role="alertdialog" aria-label="Excluir conta"><p><strong>Excluir sua conta para sempre?</strong> Todos os meses salvos serão apagados e não dá para desfazer. Se quiser guardar uma cópia, baixe o Excel na aba Ano antes.</p>
+      <div class="actions"><button type="button" class="btn danger solid" data-acct="yes">Excluir conta e dados</button><button type="button" class="btn" data-acct="no">Cancelar</button></div></div>`:''}`;
+}
+document.getElementById('acct').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-acct]');if(!b)return;
+  if(b.dataset.acct==='ask')return renderAcct(true);
+  if(b.dataset.acct==='no')return renderAcct(false);
+  b.disabled=true;b.textContent='Excluindo…';
+  const {error}=await sb.rpc('delete_my_account');
+  if(error){b.disabled=false;b.textContent='Excluir conta e dados';return toast('Não consegui excluir: '+error.message)}
+  try{await sb.auth.signOut({scope:'local'})}catch{}
+  showAuth('login','Sua conta e todos os seus dados foram excluídos.');
+});
 async function initStore(){
   if(!sb)return showSetup();
   sb.auth.onAuthStateChange((ev,session)=>{
@@ -349,6 +376,7 @@ function showAuth(mode,msg){
     <div class="msg" ${msg?'':'hidden'}>${esc(msg||'')}</div>
     ${mode==='login'?'<button type="button" class="switch" data-mode="signup">Ainda não tenho conta</button><button type="button" class="switch" data-mode="forgot">Esqueci a senha</button>'
       :mode!=='reset'?'<button type="button" class="switch" data-mode="login">Voltar para entrar</button>':''}
+    ${SITE?`<a class="switch" href="${PRIVACY}" target="_blank" rel="noopener">Política de privacidade</a>`:''}
   </form>`;
   $auth.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>showAuth(b.dataset.mode));
   const eye=$auth.querySelector('.eye');
@@ -363,7 +391,7 @@ function showAuth(mode,msg){
     if(mode!=='reset'&&!email)return fail('Digite seu e-mail.');
     if(mode!=='forgot'&&(!password||password.length<6))return fail('A senha precisa ter pelo menos 6 caracteres.');
     btn.disabled=true;
-    const back=location.origin+location.pathname;
+    const back=SITE||location.href;
     try{
       if(mode==='login'){const r=await sb.auth.signInWithPassword({email,password});if(r.error)return fail(r.error.message)}
       else if(mode==='signup'){const r=await sb.auth.signUp({email,password,options:{emailRedirectTo:back}});if(r.error)return fail(r.error.message);
@@ -522,6 +550,10 @@ function toast(msg){let el=document.getElementById('toast');if(!el){el=document.
 const MIME={pdf:'application/pdf',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
 async function saveFile(filename,data){
   const blob=new Blob([data],{type:MIME[filename.split('.').pop()]||'application/octet-stream'});
+  /* Dentro do app do iPhone/iPad/Mac: entrega o arquivo ao app nativo, que abre Compartilhar/Salvar */
+  const native=window.webkit?.messageHandlers?.bolsoSave;
+  if(native){const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob)});
+    native.postMessage({name:filename,data:b64});return toast('Arquivo pronto: '+filename)}
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),10000);toast('Baixando '+filename);
