@@ -99,6 +99,9 @@ main{padding-block:24px 64px}
 .money input{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-left:22px}
 .row input.due{text-align:center;font-family:var(--mono)}
 .duebox{display:flex;align-items:center;gap:6px;min-width:0}
+/* Conta não paga que vence em até 3 dias: fundo vermelho a 50% */
+.row.soon{background:rgba(194,54,44,.5);background:color-mix(in srgb,var(--neg) 50%,transparent)}
+.row.soon .duelbl,.row.soon input{color:var(--ink)}
 .duelbl{display:none}
 .chk{appearance:none;width:22px!important;height:22px;border:2px solid var(--line)!important;border-radius:6px!important;padding:0!important;display:grid;place-items:center;cursor:pointer;background:var(--surface)!important}
 .chk:checked{background:var(--pos)!important;border-color:var(--pos)!important}
@@ -415,12 +418,19 @@ function renderHeader(){
   const tabs=document.getElementById('tabs');tabs.innerHTML=h;
   tabs.querySelector('[aria-current="true"]')?.scrollIntoView({block:'nearest',inline:'nearest'});
 }
+/* Dias até o vencimento da conta no mês aberto (0 = vence hoje); null sem dia definido */
+function daysToDue(r){
+  const d=parseInt(r.due,10);if(!d||S.view==='ano')return null;
+  const last=new Date(S.year,S.view+1,0).getDate(),due=new Date(S.year,S.view,Math.min(d,last));
+  const t=new Date();t.setHours(0,0,0,0);return Math.round((due-t)/864e5);
+}
+const dueSoon=r=>{if(r.paid)return false;const n=daysToDue(r);return n!==null&&n>=0&&n<=3};
 function moneyInput(id,val,label){return `<div class="money"><input id="${id}" class="val" inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="${esc(label)}" value="${val?dec.format(val):''}" data-f="value"></div>`}
 function rowHtml(sec,r){
   const p=`${sec.key}-${r.id}`,del=`<button class="del" data-act="del" aria-label="Remover ${esc(r.desc||'linha')}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>`;
   const desc=`<input id="${p}-desc" class="desc" data-f="desc" value="${esc(r.desc)}" placeholder="Descrição" aria-label="Descrição">`;
   if(sec.kind==='income')return `<div class="row g-income" data-sec="${sec.key}" data-row="${r.id}">${desc}${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
-  if(sec.kind==='bill')return `<div class="row g-bill${r.paid?' paid':''}" data-sec="${sec.key}" data-row="${r.id}"><input type="checkbox" class="chk" id="${p}-paid" data-f="paid" ${r.paid?'checked':''} aria-label="Pago">${desc}<label class="duebox" for="${p}-due"><span class="duelbl">Vence dia</span><input id="${p}-due" class="due" data-f="due" inputmode="numeric" maxlength="2" placeholder="—" value="${r.due||''}" aria-label="Dia do vencimento"></label>${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
+  if(sec.kind==='bill')return `<div class="row g-bill${r.paid?' paid':''}${dueSoon(r)?' soon':''}" data-sec="${sec.key}" data-row="${r.id}"><input type="checkbox" class="chk" id="${p}-paid" data-f="paid" ${r.paid?'checked':''} aria-label="Pago">${desc}<label class="duebox" for="${p}-due"><span class="duelbl">Vence dia</span><input id="${p}-due" class="due" data-f="due" inputmode="numeric" maxlength="2" placeholder="—" value="${r.due||''}" aria-label="Dia do vencimento"></label>${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
   const cats=CATS.map(c=>`<option${c===r.cat?' selected':''}>${c}</option>`).join('');
   return `<div class="row g-extra" data-sec="${sec.key}" data-row="${r.id}"><input type="date" id="${p}-date" class="xdate" data-f="date" value="${esc(r.date||'')}" aria-label="Data">${desc}<select id="${p}-cat" class="xcat" data-f="cat" aria-label="Categoria">${cats}</select>${moneyInput(p+'-v',r.value,'Valor')}${del}</div>`;
 }
@@ -630,6 +640,7 @@ $main.addEventListener('input',e=>{
   if(f==='value')r.value=parseMoney(el.value);
   else if(f==='paid'){r.paid=el.checked;row.classList.toggle('paid',el.checked)}
   else if(f==='due'){el.value=el.value.replace(/\D/g,'');r.due=el.value}
+  if(f==='paid'||f==='due')row.classList.toggle('soon',dueSoon(r));
   else r[f]=el.value;
   touch(id);updateTotals();
 });
@@ -641,6 +652,8 @@ $main.addEventListener('focusout',e=>{const el=e.target;
 $main.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.row input')){e.preventDefault();e.target.blur()}});
 
 renderHeader();
+/* Atualiza os destaques de vencimento ao virar o dia */
+setInterval(()=>{if(S.ready&&S.view!=='ano')requestRender()},30*60*1000);
 initStore().then(()=>{if(S.view!=='ano')updateTotals()});
 const _render=render;render=function(){_render();if(S.view!=='ano')updateTotals()};
 </script>
