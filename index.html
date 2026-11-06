@@ -450,7 +450,8 @@ function showAuth(mode,msg,opts={}){
       say(tx('Enviamos um novo link para {0}. Confira também o spam.',email))
     }catch{say(tx('Sem conexão. Confira a internet e tente de novo.'),true)}
   };
-  $auth.querySelector('input')?.focus();
+  /* No celular o teclado não sobe sozinho: cobriria a tela e o aviso de instalação */
+  if(matchMedia('(hover:hover)').matches)$auth.querySelector('input')?.focus();
 }
 /* Sair: salva o que estiver pendente (no máximo 4 s) e encerra a sessão mesmo sem internet */
 document.getElementById('logout').onclick=async e=>{
