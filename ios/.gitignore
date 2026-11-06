@@ -1,0 +1,7 @@
+# Gerados por scripts/build-ipa.sh
+Bolso.xcodeproj/
+Bolso/Info.plist
+Bolso/www/
+.cache/
+build/
+dist/

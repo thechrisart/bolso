@@ -2,5 +2,6 @@
 // A chave "anon"/"publishable" é pública por natureza: a segurança vem das regras (RLS) do banco.
 window.BOLSO_CONFIG = {
   supabaseUrl: 'https://vqyntchhknenbdjxfjsi.supabase.co',
+  siteUrl: 'https://thechrisart.github.io/bolso/', // os links de e-mail abertos pelo app vão para cá
   supabaseKey: 'sb_publishable_Vlq-wp8qPDYzJTJ2Bzjs1A_9dqSgzS7'
 };
